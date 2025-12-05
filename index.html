@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShield Analytics | Threat Intelligence Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Orbitron', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                        'body': ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        'cyber': {
+                            'dark': '#0a0e17',
+                            'darker': '#050810',
+                            'card': '#111827',
+                            'border': '#1e3a5f',
+                            'cyan': '#00f0ff',
+                            'purple': '#a855f7',
+                            'red': '#ff3366',
+                            'orange': '#ff9500',
+                            'green': '#00ff88',
+                            'yellow': '#ffea00',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'scan': 'scan 3s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes glow {
+            from { box-shadow: 0 0 5px rgba(0, 240, 255, 0.3), 0 0 10px rgba(0, 240, 255, 0.2); }
+            to { box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.3); }
+        }
+        @keyframes scan {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 0% 100%; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .animate-count { animation: countUp 0.8s ease-out forwards; }
+        .animate-slide { animation: slideIn 0.6s ease-out forwards; }
+        .animate-fade { animation: fadeIn 1s ease-out forwards; }
+        
+        .card-glow { animation: glow 2s ease-in-out infinite alternate; }
+        
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .scan-line {
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 240, 255, 0.1) 50%, transparent 100%);
+            background-size: 100% 200%;
+            animation: scan 3s linear infinite;
+        }
+        
+        .cyber-border {
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            position: relative;
+        }
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+        }
+        .cyber-border::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .threat-bar {
+            position: relative;
+            overflow: hidden;
+        }
+        .threat-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            100% { left: 100%; }
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0e17; }
+        ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+        
+        .chart-container { position: relative; }
+    </style>
+</head>
+<body class="bg-cyber-darker text-white font-body min-h-screen grid-bg">
+    <!-- Ambient scan effect -->
+    <div class="fixed inset-0 scan-line pointer-events-none opacity-30 z-0"></div>
+    
+    <!-- Header -->
+    <header class="relative z-10 border-b border-cyber-border bg-cyber-dark/80 backdrop-blur-xl sticky top-0">
+        <div class="max-w-[1920px] mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-gradient-to-br from-cyber-cyan to-cyber-purple rounded-lg flex items-center justify-center animate-float">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyber-green rounded-full status-dot"></div>
+                    </div>
+                    <div>
+                        <h1 class="font-display text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-cyber-purple">
+                            CYBERSHIELD
+                        </h1>
+                        <p class="text-xs text-gray-500 font-mono tracking-widest">THREAT INTELLIGENCE DASHBOARD</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-3 px-4 py-2 bg-cyber-card/50 rounded-lg border border-cyber-border">
+                        <span class="text-xs text-gray-400 font-mono">MONITORING</span>
+                        <span class="status-dot bg-cyber-green"></span>
+                        <span class="text-cyber-green text-sm font-semibold">ACTIVE</span>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500 font-mono">LAST UPDATE</p>
+                        <p id="lastUpdate" class="text-sm font-mono text-cyber-cyan"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="relative z-10 max-w-[1920px] mx-auto p-6 space-y-6">
+        
+        <!-- Threat Level Banner -->
+        <div id="threatBanner" class="cyber-border rounded-xl p-6 bg-gradient-to-r from-cyber-card via-cyber-dark to-cyber-card overflow-hidden relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-cyber-red/5 to-transparent"></div>
+            <div class="relative flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-cyber-orange to-cyber-red flex items-center justify-center card-glow">
+                        <span class="font-display text-3xl font-black" id="threatScore">87</span>
+                    </div>
+                    <div>
+                        <h2 class="font-display text-lg tracking-wider text-gray-400">CURRENT THREAT LEVEL</h2>
+                        <p id="threatLevel" class="text-3xl font-bold text-cyber-orange">ELEVATED</p>
+                        <p class="text-sm text-gray-500 mt-1">Increased DDoS activity detected in the last 24 hours</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono mb-1">BLOCKED TODAY</p>
+                        <p class="text-2xl font-bold text-cyber-cyan" id="blockedToday">0</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono mb-1">ACTIVE INCIDENTS</p>
+                        <p class="text-2xl font-bold text-cyber-red" id="activeIncidents">0</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono mb-1">SYSTEMS PROTECTED</p>
+                        <p class="text-2xl font-bold text-cyber-green" id="systemsProtected">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">TOTAL ATTACKS</span>
+                    <svg class="w-5 h-5 text-cyber-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold" id="totalAttacks">0</p>
+                <p class="text-xs text-cyber-red mt-1" id="attacksTrend">↑ 0% vs last week</p>
+            </div>
+            
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.2s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">DOS EVENTS</span>
+                    <svg class="w-5 h-5 text-cyber-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold" id="dosEvents">0</p>
+                <p class="text-xs text-cyber-orange mt-1" id="dosTrend">↑ 0% vs last week</p>
+            </div>
+            
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.3s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">MALWARE DETECTED</span>
+                    <svg class="w-5 h-5 text-cyber-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold" id="malwareDetected">0</p>
+                <p class="text-xs text-cyber-purple mt-1" id="malwareTrend">↓ 0% vs last week</p>
+            </div>
+            
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.4s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">PHISHING BLOCKED</span>
+                    <svg class="w-5 h-5 text-cyber-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold" id="phishingBlocked">0</p>
+                <p class="text-xs text-cyber-green mt-1" id="phishingTrend">↓ 0% vs last week</p>
+            </div>
+            
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.5s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">AVG RESPONSE TIME</span>
+                    <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold"><span id="avgResponse">0</span><span class="text-lg text-gray-500">ms</span></p>
+                <p class="text-xs text-cyber-cyan mt-1">Within SLA targets</p>
+            </div>
+            
+            <div class="cyber-border rounded-xl p-4 bg-cyber-card/50 backdrop-blur animate-slide" style="animation-delay: 0.6s">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-500 font-mono">UPTIME</span>
+                    <svg class="w-5 h-5 text-cyber-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p class="text-3xl font-bold"><span id="uptime">99.97</span><span class="text-lg text-gray-500">%</span></p>
+                <p class="text-xs text-cyber-green mt-1">30-day rolling average</p>
+            </div>
+        </div>
+        
+        <!-- Main Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Attack Timeline Chart -->
+            <div class="lg:col-span-2 cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">ATTACK TIMELINE</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Last 7 days activity correlation</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="updateTimelineRange('7d')" class="px-3 py-1 text-xs font-mono bg-cyber-cyan/20 text-cyber-cyan rounded border border-cyber-cyan/30 hover:bg-cyber-cyan/30 transition-colors">7D</button>
+                        <button onclick="updateTimelineRange('30d')" class="px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors">30D</button>
+                        <button onclick="updateTimelineRange('90d')" class="px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors">90D</button>
+                    </div>
+                </div>
+                <div class="chart-container h-72">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Attack Type Distribution -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">ATTACK DISTRIBUTION</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">By attack vector type</p>
+                    </div>
+                </div>
+                <div class="chart-container h-56">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+                <div id="distributionLegend" class="mt-4 space-y-2"></div>
+            </div>
+        </div>
+        
+        <!-- Second Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Geographic Distribution -->
+            <div class="lg:col-span-2 cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">GEOGRAPHIC ORIGIN</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Top source countries by attack volume</p>
+                    </div>
+                </div>
+                <div id="geoList" class="space-y-3"></div>
+            </div>
+            
+            <!-- DOS Event Analysis -->
+            <div class="lg:col-span-2 cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">DOS EVENT ANALYSIS</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Bandwidth consumption over time</p>
+                    </div>
+                    <span class="px-3 py-1 text-xs font-mono bg-cyber-orange/20 text-cyber-orange rounded border border-cyber-orange/30">
+                        CRITICAL MONITORING
+                    </span>
+                </div>
+                <div class="chart-container h-48">
+                    <canvas id="dosChart"></canvas>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-cyber-border">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">PEAK BANDWIDTH</p>
+                        <p class="text-xl font-bold text-cyber-orange" id="peakBandwidth">0 Gbps</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">AVG DURATION</p>
+                        <p class="text-xl font-bold text-cyber-cyan" id="avgDuration">0 min</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">MITIGATED</p>
+                        <p class="text-xl font-bold text-cyber-green" id="mitigatedRate">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Third Row - Events & Correlation -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Live Attack Feed -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <span class="status-dot bg-cyber-red"></span>
+                        <h3 class="font-display text-lg tracking-wider">LIVE THREAT FEED</h3>
+                    </div>
+                    <span class="text-xs text-gray-500 font-mono">AUTO-REFRESH 5s</span>
+                </div>
+                <div id="liveFeed" class="space-y-3 max-h-80 overflow-y-auto pr-2"></div>
+            </div>
+            
+            <!-- Attack Correlation Matrix -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">CORRELATION INSIGHTS</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Attack pattern relationships</p>
+                    </div>
+                </div>
+                <div id="correlationInsights" class="space-y-4"></div>
+            </div>
+            
+            <!-- Time Pattern Analysis -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">HOURLY HEATMAP</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Attack frequency by hour (UTC)</p>
+                    </div>
+                </div>
+                <div id="heatmapContainer" class="grid grid-cols-12 gap-1"></div>
+                <div class="flex justify-between mt-4 text-xs text-gray-500 font-mono">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>23:00</span>
+                </div>
+                <div class="flex items-center justify-center gap-2 mt-3">
+                    <span class="text-xs text-gray-500">Low</span>
+                    <div class="flex gap-1">
+                        <div class="w-4 h-3 bg-cyber-cyan/10 rounded-sm"></div>
+                        <div class="w-4 h-3 bg-cyber-cyan/30 rounded-sm"></div>
+                        <div class="w-4 h-3 bg-cyber-cyan/50 rounded-sm"></div>
+                        <div class="w-4 h-3 bg-cyber-cyan/70 rounded-sm"></div>
+                        <div class="w-4 h-3 bg-cyber-cyan rounded-sm"></div>
+                    </div>
+                    <span class="text-xs text-gray-500">High</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Story Section -->
+        <div class="cyber-border rounded-xl p-6 bg-gradient-to-br from-cyber-card via-cyber-dark to-cyber-card">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-purple to-cyber-cyan flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-display text-xl tracking-wider">THREAT INTELLIGENCE SUMMARY</h3>
+                    <p class="text-xs text-gray-500 font-mono">AI-Generated insights from pattern analysis</p>
+                </div>
+            </div>
+            <div id="storySection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+        
+        <!-- Recent Incidents Table -->
+        <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur overflow-hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="font-display text-lg tracking-wider">RECENT SECURITY INCIDENTS</h3>
+                    <p class="text-xs text-gray-500 font-mono mt-1">Last 20 recorded events with full attribution</p>
+                </div>
+                <div class="flex gap-4">
+                    <select id="severityFilter" class="bg-cyber-dark border border-cyber-border rounded px-3 py-1 text-sm font-mono focus:outline-none focus:border-cyber-cyan" onchange="filterIncidents()">
+                        <option value="all">All Severity</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <select id="typeFilter" class="bg-cyber-dark border border-cyber-border rounded px-3 py-1 text-sm font-mono focus:outline-none focus:border-cyber-cyan" onchange="filterIncidents()">
+                        <option value="all">All Types</option>
+                        <option value="ddos">DDoS</option>
+                        <option value="malware">Malware</option>
+                        <option value="phishing">Phishing</option>
+                        <option value="ransomware">Ransomware</option>
+                        <option value="injection">SQL Injection</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-xs text-gray-500 font-mono border-b border-cyber-border">
+                            <th class="pb-3 pr-4">TIMESTAMP</th>
+                            <th class="pb-3 pr-4">EVENT ID</th>
+                            <th class="pb-3 pr-4">TYPE</th>
+                            <th class="pb-3 pr-4">SOURCE</th>
+                            <th class="pb-3 pr-4">TARGET</th>
+                            <th class="pb-3 pr-4">SEVERITY</th>
+                            <th class="pb-3 pr-4">STATUS</th>
+                            <th class="pb-3">DETAILS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentsTable" class="text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+        
+    </main>
+    
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-cyber-border bg-cyber-dark/80 backdrop-blur-xl mt-8">
+        <div class="max-w-[1920px] mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-500 font-mono">© 2024 CYBERSHIELD ANALYTICS • THREAT INTELLIGENCE PLATFORM</p>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs text-gray-500 font-mono">DATA REFRESH: <span class="text-cyber-cyan" id="refreshRate">5s</span></span>
+                    <span class="text-xs text-gray-500 font-mono">NODES: <span class="text-cyber-green">24/24 ONLINE</span></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // ================================
+        // DATA GENERATION & CONFIGURATION
+        // ================================
+        
+        const attackTypes = ['DDoS', 'Malware', 'Phishing', 'Ransomware', 'SQL Injection', 'XSS', 'Brute Force', 'Zero-Day'];
+        const countries = [
+            { code: 'CN', name: 'China', flag: '🇨🇳' },
+            { code: 'RU', name: 'Russia', flag: '🇷🇺' },
+            { code: 'US', name: 'United States', flag: '🇺🇸' },
+            { code: 'KP', name: 'North Korea', flag: '🇰🇵' },
+            { code: 'IR', name: 'Iran', flag: '🇮🇷' },
+            { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+            { code: 'IN', name: 'India', flag: '🇮🇳' },
+            { code: 'VN', name: 'Vietnam', flag: '🇻🇳' },
+            { code: 'ID', name: 'Indonesia', flag: '🇮🇩' },
+            { code: 'UA', name: 'Ukraine', flag: '🇺🇦' }
+        ];
+        const severityLevels = ['critical', 'high', 'medium', 'low'];
+        const targets = ['Web Server', 'Database', 'API Gateway', 'Auth Service', 'CDN', 'Email Server', 'DNS', 'Firewall'];
+        
+        let allIncidents = [];
+        let charts = {};
+        
+        // Generate random number within range
+        function rand(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        // Generate realistic IP address
+        function generateIP() {
+            return `${rand(1, 255)}.${rand(0, 255)}.${rand(0, 255)}.${rand(1, 254)}`;
+        }
+        
+        // Generate event ID
+        function generateEventID() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let id = 'EVT-';
+            for (let i = 0; i < 8; i++) id += chars[rand(0, chars.length - 1)];
+            return id;
+        }
+        
+        // Color mapping
+        const severityColors = {
+            critical: { bg: 'bg-cyber-red/20', text: 'text-cyber-red', border: 'border-cyber-red/30' },
+            high: { bg: 'bg-cyber-orange/20', text: 'text-cyber-orange', border: 'border-cyber-orange/30' },
+            medium: { bg: 'bg-cyber-yellow/20', text: 'text-cyber-yellow', border: 'border-cyber-yellow/30' },
+            low: { bg: 'bg-cyber-cyan/20', text: 'text-cyber-cyan', border: 'border-cyber-cyan/30' }
+        };
+        
+        const typeColors = {
+            'DDoS': '#ff9500',
+            'Malware': '#a855f7',
+            'Phishing': '#ffea00',
+            'Ransomware': '#ff3366',
+            'SQL Injection': '#00f0ff',
+            'XSS': '#00ff88',
+            'Brute Force': '#ff6b6b',
+            'Zero-Day': '#ff00ff'
+        };
+        
+        // ================================
+        // CHART INITIALIZATION
+        // ================================
+        
+        function initCharts() {
+            // Timeline Chart
+            const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+            charts.timeline = new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'DDoS Attacks',
+                            data: [],
+                            borderColor: '#ff9500',
+                            backgroundColor: 'rgba(255, 149, 0, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Malware',
+                            data: [],
+                            borderColor: '#a855f7',
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Phishing',
+                            data: [],
+                            borderColor: '#ffea00',
+                            backgroundColor: 'rgba(255, 234, 0, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Other',
+                            data: [],
+                            borderColor: '#00f0ff',
+                            backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#9ca3af',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1,
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'Space Grotesk' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+            
+            // Distribution Chart (Doughnut)
+            const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+            charts.distribution = new Chart(distributionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: attackTypes,
+                    datasets: [{
+                        data: [],
+                        backgroundColor: Object.values(typeColors),
+                        borderColor: '#111827',
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw.toLocaleString()} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // DOS Chart (Area)
+            const dosCtx = document.getElementById('dosChart').getContext('2d');
+            charts.dos = new Chart(dosCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Bandwidth (Gbps)',
+                        data: [],
+                        borderColor: '#ff9500',
+                        backgroundColor: (context) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                            gradient.addColorStop(0, 'rgba(255, 149, 0, 0.4)');
+                            gradient.addColorStop(1, 'rgba(255, 149, 0, 0)');
+                            return gradient;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ================================
+        // DATA UPDATE FUNCTIONS
+        // ================================
+        
+        function updateKPIs() {
+            const totalAttacks = rand(45000, 52000);
+            const dosEvents = rand(1200, 1800);
+            const malware = rand(3500, 4500);
+            const phishing = rand(8000, 12000);
+            
+            animateNumber('totalAttacks', totalAttacks);
+            animateNumber('dosEvents', dosEvents);
+            animateNumber('malwareDetected', malware);
+            animateNumber('phishingBlocked', phishing);
+            animateNumber('blockedToday', rand(15000, 25000));
+            animateNumber('activeIncidents', rand(3, 12));
+            animateNumber('systemsProtected', 847);
+            animateNumber('avgResponse', rand(12, 28));
+            
+            document.getElementById('attacksTrend').textContent = `↑ ${rand(5, 15)}% vs last week`;
+            document.getElementById('dosTrend').textContent = `↑ ${rand(8, 25)}% vs last week`;
+            document.getElementById('malwareTrend').textContent = `↓ ${rand(3, 10)}% vs last week`;
+            document.getElementById('phishingTrend').textContent = `↓ ${rand(2, 8)}% vs last week`;
+        }
+        
+        function animateNumber(elementId, target) {
+            const element = document.getElementById(elementId);
+            const start = parseInt(element.textContent.replace(/,/g, '')) || 0;
+            const duration = 1000;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(start + (target - start) * easeProgress);
+                element.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+        
+        function updateTimelineChart() {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            charts.timeline.data.labels = days;
+            
+            // Generate correlated data - DDoS spikes on weekends, malware mid-week
+            const ddos = days.map((_, i) => {
+                const base = rand(150, 250);
+                const weekendBonus = (i >= 5) ? rand(100, 200) : 0;
+                return base + weekendBonus;
+            });
+            
+            const malware = days.map((_, i) => {
+                const base = rand(80, 150);
+                const midWeekBonus = (i >= 2 && i <= 4) ? rand(50, 100) : 0;
+                return base + midWeekBonus;
+            });
+            
+            const phishing = days.map((_, i) => {
+                const base = rand(100, 180);
+                const mondayBonus = (i === 0) ? rand(80, 150) : 0;
+                return base + mondayBonus;
+            });
+            
+            const other = days.map(() => rand(50, 120));
+            
+            charts.timeline.data.datasets[0].data = ddos;
+            charts.timeline.data.datasets[1].data = malware;
+            charts.timeline.data.datasets[2].data = phishing;
+            charts.timeline.data.datasets[3].data = other;
+            charts.timeline.update('none');
+        }
+        
+        function updateDistributionChart() {
+            const data = attackTypes.map(() => rand(500, 3000));
+            charts.distribution.data.datasets[0].data = data;
+            charts.distribution.update('none');
+            
+            // Update legend
+            const legendContainer = document.getElementById('distributionLegend');
+            const total = data.reduce((a, b) => a + b, 0);
+            legendContainer.innerHTML = attackTypes.map((type, i) => {
+                const percentage = ((data[i] / total) * 100).toFixed(1);
+                return `
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full" style="background: ${Object.values(typeColors)[i]}"></div>
+                            <span class="text-gray-400">${type}</span>
+                        </div>
+                        <span class="font-mono text-white">${percentage}%</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateDOSChart() {
+            const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            charts.dos.data.labels = hours;
+            
+            // Simulate DOS attack patterns with spikes
+            const data = hours.map((_, i) => {
+                let base = rand(5, 15);
+                // Add attack spikes
+                if (i === 3 || i === 4) base += rand(30, 60);
+                if (i === 14 || i === 15) base += rand(20, 40);
+                return base;
+            });
+            
+            charts.dos.data.datasets[0].data = data;
+            charts.dos.update('none');
+            
+            // Update DOS metrics
+            document.getElementById('peakBandwidth').textContent = `${Math.max(...data)} Gbps`;
+            document.getElementById('avgDuration').textContent = `${rand(8, 25)} min`;
+            document.getElementById('mitigatedRate').textContent = `${rand(94, 99)}%`;
+        }
+        
+        function updateGeoList() {
+            const geoData = countries.map(country => ({
+                ...country,
+                attacks: rand(1000, 15000),
+                change: rand(-20, 40)
+            })).sort((a, b) => b.attacks - a.attacks).slice(0, 8);
+            
+            const maxAttacks = Math.max(...geoData.map(d => d.attacks));
+            
+            const container = document.getElementById('geoList');
+            container.innerHTML = geoData.map((country, i) => {
+                const percentage = (country.attacks / maxAttacks * 100).toFixed(0);
+                const changeClass = country.change > 0 ? 'text-cyber-red' : 'text-cyber-green';
+                const changeIcon = country.change > 0 ? '↑' : '↓';
+                
+                return `
+                    <div class="animate-slide" style="animation-delay: ${i * 0.1}s">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">${country.flag}</span>
+                                <span class="text-sm text-gray-300">${country.name}</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-sm">${country.attacks.toLocaleString()}</span>
+                                <span class="${changeClass} text-xs font-mono">${changeIcon}${Math.abs(country.change)}%</span>
+                            </div>
+                        </div>
+                        <div class="h-2 bg-cyber-dark rounded-full overflow-hidden">
+                            <div class="threat-bar h-full rounded-full bg-gradient-to-r from-cyber-cyan to-cyber-purple transition-all duration-1000" 
+                                 style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateLiveFeed() {
+            const container = document.getElementById('liveFeed');
+            const newEvent = generateIncident();
+            
+            const eventHTML = `
+                <div class="animate-slide p-3 rounded-lg border ${severityColors[newEvent.severity].border} ${severityColors[newEvent.severity].bg}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="status-dot ${newEvent.severity === 'critical' ? 'bg-cyber-red' : newEvent.severity === 'high' ? 'bg-cyber-orange' : 'bg-cyber-yellow'}"></span>
+                            <span class="text-xs font-mono text-gray-400">${newEvent.timestamp}</span>
+                        </div>
+                        <span class="text-xs font-mono ${severityColors[newEvent.severity].text}">${newEvent.severity.toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm mt-2 text-white">${newEvent.type} detected from ${newEvent.source}</p>
+                    <p class="text-xs text-gray-500 mt-1">Target: ${newEvent.target}</p>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('afterbegin', eventHTML);
+            
+            // Keep only last 10 events
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        function updateHeatmap() {
+            const container = document.getElementById('heatmapContainer');
+            container.innerHTML = '';
+            
+            // Generate 24 hours x 7 days heatmap
+            for (let day = 0; day < 7; day++) {
+                for (let hour = 0; hour < 24; hour++) {
+                    let intensity = Math.random();
+                    // Increase intensity during business hours for certain patterns
+                    if (hour >= 9 && hour <= 17) intensity += 0.2;
+                    // Night-time attack spikes
+                    if (hour >= 1 && hour <= 4) intensity += Math.random() * 0.3;
+                    
+                    intensity = Math.min(intensity, 1);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'h-3 rounded-sm transition-all hover:scale-150 cursor-pointer';
+                    cell.style.backgroundColor = `rgba(0, 240, 255, ${intensity})`;
+                    cell.title = `Day ${day + 1}, ${hour}:00 - Intensity: ${(intensity * 100).toFixed(0)}%`;
+                    container.appendChild(cell);
+                }
+            }
+        }
+        
+        function updateCorrelationInsights() {
+            const insights = [
+                {
+                    title: 'DDoS & Weekend Correlation',
+                    description: 'DDoS attacks increase 47% on weekends when security teams are reduced.',
+                    confidence: 94,
+                    trend: 'up'
+                },
+                {
+                    title: 'Phishing Monday Spike',
+                    description: 'Phishing attempts peak on Mondays as employees return to work.',
+                    confidence: 89,
+                    trend: 'up'
+                },
+                {
+                    title: 'Geographic Pattern',
+                    description: 'Coordinated attacks from Eastern Europe during US nighttime hours.',
+                    confidence: 78,
+                    trend: 'stable'
+                },
+                {
+                    title: 'Ransomware & Holidays',
+                    description: 'Ransomware deployment correlates with major holiday periods.',
+                    confidence: 85,
+                    trend: 'up'
+                }
+            ];
+            
+            const container = document.getElementById('correlationInsights');
+            container.innerHTML = insights.map(insight => `
+                <div class="p-3 rounded-lg bg-cyber-dark/50 border border-cyber-border">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-white">${insight.title}</h4>
+                        <span class="text-xs font-mono ${insight.confidence > 85 ? 'text-cyber-green' : 'text-cyber-yellow'}">${insight.confidence}%</span>
+                    </div>
+                    <p class="text-xs text-gray-400">${insight.description}</p>
+                </div>
+            `).join('');
+        }
+        
+        function updateStorySection() {
+            const stories = [
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>`,
+                    title: 'Attack Volume Surge',
+                    stat: '+23%',
+                    description: 'Overall attack volume increased significantly this week, primarily driven by automated bot networks targeting API endpoints.',
+                    color: 'cyber-red'
+                },
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                    title: 'Peak Attack Window',
+                    stat: '02:00-05:00 UTC',
+                    description: 'Most sophisticated attacks occur during off-peak hours when monitoring may be reduced. Consider 24/7 SOC coverage.',
+                    color: 'cyber-orange'
+                },
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>`,
+                    title: 'Primary Threat Actor',
+                    stat: 'APT-41 Linked',
+                    description: 'Pattern analysis suggests state-sponsored activity. Multiple TTPs match known APT-41 campaigns targeting financial sector.',
+                    color: 'cyber-purple'
+                },
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`,
+                    title: 'Defense Effectiveness',
+                    stat: '97.3%',
+                    description: 'Automated defense systems successfully blocked nearly all attacks. Manual intervention required for 2.7% of incidents.',
+                    color: 'cyber-green'
+                },
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+                    title: 'Emerging Threat',
+                    stat: 'AI-Powered Phishing',
+                    description: 'New wave of AI-generated phishing emails detected. Language quality significantly improved, bypassing traditional filters.',
+                    color: 'cyber-yellow'
+                },
+                {
+                    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+                    title: 'Resource Impact',
+                    stat: '340 Gbps Mitigated',
+                    description: 'Largest DDoS attack this week reached 340 Gbps. Mitigation activated within 8 seconds, no service disruption occurred.',
+                    color: 'cyber-cyan'
+                }
+            ];
+            
+            const container = document.getElementById('storySection');
+            container.innerHTML = stories.map((story, i) => `
+                <div class="p-5 rounded-xl bg-cyber-dark/70 border border-cyber-border hover:border-${story.color}/50 transition-all animate-fade" style="animation-delay: ${i * 0.1}s">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-${story.color}/20 flex items-center justify-center text-${story.color} flex-shrink-0">
+                            ${story.icon}
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white mb-1">${story.title}</h4>
+                            <p class="text-2xl font-bold text-${story.color} mb-2">${story.stat}</p>
+                            <p class="text-sm text-gray-400 leading-relaxed">${story.description}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function generateIncident() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - rand(0, 60));
+            
+            return {
+                timestamp: now.toLocaleTimeString('en-US', { hour12: false }),
+                fullTimestamp: now.toISOString(),
+                eventId: generateEventID(),
+                type: attackTypes[rand(0, attackTypes.length - 1)],
+                source: `${countries[rand(0, countries.length - 1)].flag} ${generateIP()}`,
+                sourceCountry: countries[rand(0, countries.length - 1)],
+                target: targets[rand(0, targets.length - 1)],
+                severity: severityLevels[rand(0, severityLevels.length - 1)],
+                status: Math.random() > 0.2 ? 'Mitigated' : 'Investigating',
+                details: `Port ${rand(20, 8080)} | ${rand(100, 10000)} packets`
+            };
+        }
+        
+        function generateIncidents(count = 20) {
+            allIncidents = Array.from({ length: count }, () => generateIncident());
+            allIncidents.sort((a, b) => new Date(b.fullTimestamp) - new Date(a.fullTimestamp));
+            renderIncidentsTable(allIncidents);
+        }
+        
+        function renderIncidentsTable(incidents) {
+            const container = document.getElementById('incidentsTable');
+            container.innerHTML = incidents.map((incident, i) => {
+                const statusClass = incident.status === 'Mitigated' ? 'text-cyber-green' : 'text-cyber-yellow';
+                return `
+                    <tr class="border-b border-cyber-border/50 hover:bg-cyber-border/10 transition-colors animate-slide" style="animation-delay: ${i * 0.03}s">
+                        <td class="py-3 pr-4 font-mono text-xs text-gray-400">${incident.timestamp}</td>
+                        <td class="py-3 pr-4 font-mono text-xs text-cyber-cyan">${incident.eventId}</td>
+                        <td class="py-3 pr-4">
+                            <span class="px-2 py-1 text-xs rounded" style="background: ${typeColors[incident.type]}20; color: ${typeColors[incident.type]}">${incident.type}</span>
+                        </td>
+                        <td class="py-3 pr-4 text-sm">${incident.source}</td>
+                        <td class="py-3 pr-4 text-sm text-gray-400">${incident.target}</td>
+                        <td class="py-3 pr-4">
+                            <span class="px-2 py-1 text-xs rounded ${severityColors[incident.severity].bg} ${severityColors[incident.severity].text}">${incident.severity.toUpperCase()}</span>
+                        </td>
+                        <td class="py-3 pr-4 text-sm ${statusClass}">${incident.status}</td>
+                        <td class="py-3 font-mono text-xs text-gray-500">${incident.details}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function filterIncidents() {
+            const severityFilter = document.getElementById('severityFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            
+            let filtered = allIncidents;
+            
+            if (severityFilter !== 'all') {
+                filtered = filtered.filter(i => i.severity === severityFilter);
+            }
+            
+            if (typeFilter !== 'all') {
+                const typeMap = {
+                    'ddos': 'DDoS',
+                    'malware': 'Malware',
+                    'phishing': 'Phishing',
+                    'ransomware': 'Ransomware',
+                    'injection': 'SQL Injection'
+                };
+                filtered = filtered.filter(i => i.type === typeMap[typeFilter]);
+            }
+            
+            renderIncidentsTable(filtered);
+        }
+        
+        function updateTimelineRange(range) {
+            // Update button styles
+            document.querySelectorAll('[onclick^="updateTimelineRange"]').forEach(btn => {
+                btn.className = 'px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors';
+            });
+            event.target.className = 'px-3 py-1 text-xs font-mono bg-cyber-cyan/20 text-cyber-cyan rounded border border-cyber-cyan/30 hover:bg-cyber-cyan/30 transition-colors';
+            
+            // Generate new data based on range
+            updateTimelineChart();
+        }
+        
+        function updateLastUpdate() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+        }
+        
+        // ================================
+        // INITIALIZATION
+        // ================================
+        
+        function init() {
+            initCharts();
+            updateKPIs();
+            updateTimelineChart();
+            updateDistributionChart();
+            updateDOSChart();
+            updateGeoList();
+            updateHeatmap();
+            updateCorrelationInsights();
+            updateStorySection();
+            generateIncidents(20);
+            updateLastUpdate();
+            
+            // Initial live feed
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => updateLiveFeed(), i * 200);
+            }
+            
+            // Set up auto-refresh intervals
+            setInterval(updateLiveFeed, 5000);
+            setInterval(updateLastUpdate, 1000);
+            setInterval(() => {
+                updateKPIs();
+                updateDOSChart();
+            }, 30000);
+        }
+        
+        // Start the dashboard
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
