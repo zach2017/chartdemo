@@ -434,6 +434,133 @@
             <div id="storySection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
         
+        <!-- New Charts Row - Decision Tree, Time Series, Waffle Chart -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Decision Tree for Incident Response -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">INCIDENT RESPONSE TREE</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Automated decision workflow</p>
+                    </div>
+                    <span class="px-3 py-1 text-xs font-mono bg-cyber-green/20 text-cyber-green rounded border border-cyber-green/30">
+                        ACTIVE
+                    </span>
+                </div>
+                <div id="decisionTree" class="relative"></div>
+                <div class="mt-4 pt-4 border-t border-cyber-border">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-500 font-mono">DECISIONS TODAY</span>
+                        <span class="text-cyber-cyan font-bold" id="decisionsToday">0</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs mt-2">
+                        <span class="text-gray-500 font-mono">AUTO-RESOLVED</span>
+                        <span class="text-cyber-green font-bold" id="autoResolved">0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Time Series - Attack Prediction -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">ATTACK TREND FORECAST</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">ML-based prediction model</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse"></span>
+                        <span class="text-xs text-gray-400 font-mono">LIVE</span>
+                    </div>
+                </div>
+                <div class="chart-container h-56">
+                    <canvas id="timeSeriesChart"></canvas>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-cyber-border">
+                    <div>
+                        <p class="text-xs text-gray-500 font-mono">FORECAST ACCURACY</p>
+                        <p class="text-lg font-bold text-cyber-green" id="forecastAccuracy">94.2%</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-mono">PREDICTED SPIKE</p>
+                        <p class="text-lg font-bold text-cyber-orange" id="predictedSpike">+18% in 4h</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Waffle Chart - Incident Response Status -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">RESPONSE STATUS</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Incident resolution breakdown</p>
+                    </div>
+                </div>
+                <div id="waffleChart" class="grid grid-cols-10 gap-1 mb-4"></div>
+                <div id="waffleLegend" class="space-y-2 mt-4 pt-4 border-t border-cyber-border"></div>
+                <div class="mt-4 p-3 rounded-lg bg-cyber-dark/50 border border-cyber-border">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Mean Time to Resolution</span>
+                        <span class="text-sm font-bold text-cyber-cyan" id="mttr">12.4 min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Analytics Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Detailed Time Series with Anomaly Detection -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">ANOMALY DETECTION</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Real-time traffic analysis with ML anomaly scoring</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="updateAnomalyRange('1h')" class="px-3 py-1 text-xs font-mono bg-cyber-cyan/20 text-cyber-cyan rounded border border-cyber-cyan/30 hover:bg-cyber-cyan/30 transition-colors">1H</button>
+                        <button onclick="updateAnomalyRange('6h')" class="px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors">6H</button>
+                        <button onclick="updateAnomalyRange('24h')" class="px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors">24H</button>
+                    </div>
+                </div>
+                <div class="chart-container h-64">
+                    <canvas id="anomalyChart"></canvas>
+                </div>
+                <div class="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-cyber-border">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">ANOMALIES</p>
+                        <p class="text-xl font-bold text-cyber-red" id="anomalyCount">7</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">BASELINE</p>
+                        <p class="text-xl font-bold text-cyber-cyan" id="baselineValue">1.2K/s</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">CURRENT</p>
+                        <p class="text-xl font-bold text-cyber-orange" id="currentValue">1.8K/s</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 font-mono">DEVIATION</p>
+                        <p class="text-xl font-bold text-cyber-yellow" id="deviationValue">+50%</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Response Workflow Decision Tree (Expanded) -->
+            <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display text-lg tracking-wider">RESPONSE WORKFLOW ENGINE</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Automated incident classification & routing</p>
+                    </div>
+                    <span class="px-3 py-1 text-xs font-mono bg-cyber-purple/20 text-cyber-purple rounded border border-cyber-purple/30">
+                        AI-POWERED
+                    </span>
+                </div>
+                <div id="expandedDecisionTree" class="relative overflow-x-auto"></div>
+            </div>
+        </div>
+
         <!-- Recent Incidents Table -->
         <div class="cyber-border rounded-xl p-6 bg-cyber-card/50 backdrop-blur overflow-hidden">
             <div class="flex items-center justify-between mb-6">
@@ -727,6 +854,184 @@
                     }
                 }
             });
+            
+            // Time Series Forecast Chart
+            const timeSeriesCtx = document.getElementById('timeSeriesChart').getContext('2d');
+            charts.timeSeries = new Chart(timeSeriesCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Actual',
+                            data: [],
+                            borderColor: '#00f0ff',
+                            backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Predicted',
+                            data: [],
+                            borderColor: '#a855f7',
+                            borderDash: [5, 5],
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Upper Bound',
+                            data: [],
+                            borderColor: 'rgba(255, 234, 0, 0.3)',
+                            backgroundColor: 'transparent',
+                            borderDash: [2, 2],
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Lower Bound',
+                            data: [],
+                            borderColor: 'rgba(255, 234, 0, 0.3)',
+                            backgroundColor: 'transparent',
+                            borderDash: [2, 2],
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#9ca3af',
+                                font: { family: 'JetBrains Mono', size: 9 },
+                                usePointStyle: true,
+                                padding: 15,
+                                filter: (item) => item.datasetIndex < 2
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 58, 95, 0.2)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 6 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 58, 95, 0.2)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 } }
+                        }
+                    }
+                }
+            });
+            
+            // Anomaly Detection Chart
+            const anomalyCtx = document.getElementById('anomalyChart').getContext('2d');
+            charts.anomaly = new Chart(anomalyCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Traffic',
+                            data: [],
+                            borderColor: '#00f0ff',
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+                                gradient.addColorStop(0, 'rgba(0, 240, 255, 0.3)');
+                                gradient.addColorStop(1, 'rgba(0, 240, 255, 0)');
+                                return gradient;
+                            },
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Baseline',
+                            data: [],
+                            borderColor: '#00ff88',
+                            borderDash: [10, 5],
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Threshold',
+                            data: [],
+                            borderColor: '#ff3366',
+                            borderDash: [5, 5],
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Anomalies',
+                            data: [],
+                            borderColor: '#ff3366',
+                            backgroundColor: '#ff3366',
+                            fill: false,
+                            showLine: false,
+                            pointRadius: 8,
+                            pointHoverRadius: 10,
+                            pointStyle: 'triangle'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#9ca3af',
+                                font: { family: 'JetBrains Mono', size: 9 },
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 3 && context.raw !== null) {
+                                        return `⚠️ Anomaly Detected: ${context.raw} req/s`;
+                                    }
+                                    return `${context.dataset.label}: ${context.raw} req/s`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 58, 95, 0.2)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 10 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 58, 95, 0.2)' },
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 } }
+                        }
+                    }
+                }
+            });
         }
         
         // ================================
@@ -976,6 +1281,328 @@
             `).join('');
         }
         
+        function updateDecisionTree() {
+            const container = document.getElementById('decisionTree');
+            const decisions = rand(1200, 2500);
+            const autoResolve = rand(78, 92);
+            
+            document.getElementById('decisionsToday').textContent = decisions.toLocaleString();
+            document.getElementById('autoResolved').textContent = `${autoResolve}%`;
+            
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <!-- Root Node -->
+                    <div class="relative">
+                        <div class="w-32 py-2 px-3 bg-cyber-cyan/20 border border-cyber-cyan/50 rounded-lg text-center">
+                            <p class="text-xs font-mono text-cyber-cyan">INCIDENT</p>
+                            <p class="text-xs text-gray-400">Detected</p>
+                        </div>
+                        <div class="absolute left-1/2 bottom-0 w-px h-4 bg-cyber-border transform translate-y-full -translate-x-1/2"></div>
+                    </div>
+                    
+                    <!-- Level 1 -->
+                    <div class="mt-4 relative">
+                        <div class="w-36 py-2 px-3 bg-cyber-purple/20 border border-cyber-purple/50 rounded-lg text-center">
+                            <p class="text-xs font-mono text-cyber-purple">CLASSIFY</p>
+                            <p class="text-xs text-gray-400">Severity Check</p>
+                        </div>
+                        <div class="absolute left-1/2 bottom-0 w-px h-4 bg-cyber-border transform translate-y-full -translate-x-1/2"></div>
+                    </div>
+                    
+                    <!-- Branch -->
+                    <div class="mt-4 flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 py-2 px-2 bg-cyber-red/20 border border-cyber-red/50 rounded-lg text-center">
+                                <p class="text-[10px] font-mono text-cyber-red">CRITICAL</p>
+                                <p class="text-xs text-white font-bold">${rand(5, 15)}%</p>
+                            </div>
+                            <div class="w-px h-3 bg-cyber-border"></div>
+                            <div class="w-20 py-1 px-2 bg-cyber-orange/20 border border-cyber-orange/50 rounded text-center">
+                                <p class="text-[9px] font-mono text-cyber-orange">ESCALATE</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 py-2 px-2 bg-cyber-yellow/20 border border-cyber-yellow/50 rounded-lg text-center">
+                                <p class="text-[10px] font-mono text-cyber-yellow">HIGH</p>
+                                <p class="text-xs text-white font-bold">${rand(20, 30)}%</p>
+                            </div>
+                            <div class="w-px h-3 bg-cyber-border"></div>
+                            <div class="w-20 py-1 px-2 bg-cyber-cyan/20 border border-cyber-cyan/50 rounded text-center">
+                                <p class="text-[9px] font-mono text-cyber-cyan">ANALYZE</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 py-2 px-2 bg-cyber-green/20 border border-cyber-green/50 rounded-lg text-center">
+                                <p class="text-[10px] font-mono text-cyber-green">LOW/MED</p>
+                                <p class="text-xs text-white font-bold">${rand(55, 70)}%</p>
+                            </div>
+                            <div class="w-px h-3 bg-cyber-border"></div>
+                            <div class="w-20 py-1 px-2 bg-cyber-green/20 border border-cyber-green/50 rounded text-center">
+                                <p class="text-[9px] font-mono text-cyber-green">AUTO-FIX</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateExpandedDecisionTree() {
+            const container = document.getElementById('expandedDecisionTree');
+            
+            container.innerHTML = `
+                <div class="flex justify-center pb-4" style="min-width: 600px;">
+                    <svg width="600" height="320" class="overflow-visible">
+                        <!-- Connection Lines -->
+                        <defs>
+                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#00f0ff;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0.8" />
+                            </linearGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        
+                        <!-- Level 0 to Level 1 -->
+                        <line x1="300" y1="40" x2="150" y2="100" stroke="url(#lineGradient)" stroke-width="2" filter="url(#glow)"/>
+                        <line x1="300" y1="40" x2="450" y2="100" stroke="url(#lineGradient)" stroke-width="2" filter="url(#glow)"/>
+                        
+                        <!-- Level 1 to Level 2 (Left branch) -->
+                        <line x1="150" y1="130" x2="75" y2="190" stroke="#ff3366" stroke-width="2" opacity="0.7"/>
+                        <line x1="150" y1="130" x2="225" y2="190" stroke="#ffea00" stroke-width="2" opacity="0.7"/>
+                        
+                        <!-- Level 1 to Level 2 (Right branch) -->
+                        <line x1="450" y1="130" x2="375" y2="190" stroke="#ff9500" stroke-width="2" opacity="0.7"/>
+                        <line x1="450" y1="130" x2="525" y2="190" stroke="#00ff88" stroke-width="2" opacity="0.7"/>
+                        
+                        <!-- Level 2 to Level 3 -->
+                        <line x1="75" y1="220" x2="75" y2="270" stroke="#ff3366" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="225" y1="220" x2="225" y2="270" stroke="#ffea00" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="375" y1="220" x2="375" y2="270" stroke="#ff9500" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="525" y1="220" x2="525" y2="270" stroke="#00ff88" stroke-width="1.5" opacity="0.5"/>
+                        
+                        <!-- Root Node (Level 0) -->
+                        <g transform="translate(300, 25)">
+                            <rect x="-50" y="-20" width="100" height="40" rx="8" fill="#111827" stroke="#00f0ff" stroke-width="2"/>
+                            <text x="0" y="-3" text-anchor="middle" fill="#00f0ff" font-size="10" font-family="JetBrains Mono">THREAT</text>
+                            <text x="0" y="10" text-anchor="middle" fill="#9ca3af" font-size="9">Detected</text>
+                        </g>
+                        
+                        <!-- Level 1 Nodes -->
+                        <g transform="translate(150, 115)">
+                            <rect x="-55" y="-20" width="110" height="40" rx="8" fill="#111827" stroke="#a855f7" stroke-width="2"/>
+                            <text x="0" y="-3" text-anchor="middle" fill="#a855f7" font-size="10" font-family="JetBrains Mono">KNOWN THREAT?</text>
+                            <text x="0" y="10" text-anchor="middle" fill="#9ca3af" font-size="9">Signature Match</text>
+                        </g>
+                        
+                        <g transform="translate(450, 115)">
+                            <rect x="-55" y="-20" width="110" height="40" rx="8" fill="#111827" stroke="#a855f7" stroke-width="2"/>
+                            <text x="0" y="-3" text-anchor="middle" fill="#a855f7" font-size="10" font-family="JetBrains Mono">NEW THREAT?</text>
+                            <text x="0" y="10" text-anchor="middle" fill="#9ca3af" font-size="9">ML Analysis</text>
+                        </g>
+                        
+                        <!-- Level 2 Nodes -->
+                        <g transform="translate(75, 205)">
+                            <rect x="-40" y="-15" width="80" height="30" rx="6" fill="rgba(255,51,102,0.2)" stroke="#ff3366" stroke-width="1.5"/>
+                            <text x="0" y="4" text-anchor="middle" fill="#ff3366" font-size="9" font-family="JetBrains Mono">CRITICAL</text>
+                        </g>
+                        
+                        <g transform="translate(225, 205)">
+                            <rect x="-40" y="-15" width="80" height="30" rx="6" fill="rgba(255,234,0,0.2)" stroke="#ffea00" stroke-width="1.5"/>
+                            <text x="0" y="4" text-anchor="middle" fill="#ffea00" font-size="9" font-family="JetBrains Mono">STANDARD</text>
+                        </g>
+                        
+                        <g transform="translate(375, 205)">
+                            <rect x="-40" y="-15" width="80" height="30" rx="6" fill="rgba(255,149,0,0.2)" stroke="#ff9500" stroke-width="1.5"/>
+                            <text x="0" y="4" text-anchor="middle" fill="#ff9500" font-size="9" font-family="JetBrains Mono">ANALYZE</text>
+                        </g>
+                        
+                        <g transform="translate(525, 205)">
+                            <rect x="-40" y="-15" width="80" height="30" rx="6" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="1.5"/>
+                            <text x="0" y="4" text-anchor="middle" fill="#00ff88" font-size="9" font-family="JetBrains Mono">MONITOR</text>
+                        </g>
+                        
+                        <!-- Level 3 - Actions -->
+                        <g transform="translate(75, 290)">
+                            <rect x="-45" y="-15" width="90" height="30" rx="4" fill="#ff3366" opacity="0.3"/>
+                            <text x="0" y="0" text-anchor="middle" fill="#ffffff" font-size="8" font-family="JetBrains Mono">🚨 ESCALATE</text>
+                            <text x="0" y="12" text-anchor="middle" fill="#ff3366" font-size="10" font-weight="bold">${rand(3, 8)}%</text>
+                        </g>
+                        
+                        <g transform="translate(225, 290)">
+                            <rect x="-45" y="-15" width="90" height="30" rx="4" fill="#ffea00" opacity="0.2"/>
+                            <text x="0" y="0" text-anchor="middle" fill="#ffffff" font-size="8" font-family="JetBrains Mono">⚡ AUTO-BLOCK</text>
+                            <text x="0" y="12" text-anchor="middle" fill="#ffea00" font-size="10" font-weight="bold">${rand(35, 45)}%</text>
+                        </g>
+                        
+                        <g transform="translate(375, 290)">
+                            <rect x="-45" y="-15" width="90" height="30" rx="4" fill="#ff9500" opacity="0.2"/>
+                            <text x="0" y="0" text-anchor="middle" fill="#ffffff" font-size="8" font-family="JetBrains Mono">🔍 SANDBOX</text>
+                            <text x="0" y="12" text-anchor="middle" fill="#ff9500" font-size="10" font-weight="bold">${rand(15, 25)}%</text>
+                        </g>
+                        
+                        <g transform="translate(525, 290)">
+                            <rect x="-45" y="-15" width="90" height="30" rx="4" fill="#00ff88" opacity="0.2"/>
+                            <text x="0" y="0" text-anchor="middle" fill="#ffffff" font-size="8" font-family="JetBrains Mono">📊 LOG</text>
+                            <text x="0" y="12" text-anchor="middle" fill="#00ff88" font-size="10" font-weight="bold">${rand(25, 35)}%</text>
+                        </g>
+                        
+                        <!-- Decision Labels -->
+                        <text x="120" y="75" fill="#00ff88" font-size="8" font-family="JetBrains Mono">YES</text>
+                        <text x="345" y="75" fill="#ff3366" font-size="8" font-family="JetBrains Mono">NO</text>
+                    </svg>
+                </div>
+            `;
+        }
+        
+        function updateWaffleChart() {
+            const container = document.getElementById('waffleChart');
+            const legendContainer = document.getElementById('waffleLegend');
+            
+            // Response status distribution (100 cells total)
+            const statuses = [
+                { name: 'Resolved', count: rand(55, 65), color: '#00ff88', description: 'Successfully mitigated' },
+                { name: 'In Progress', count: rand(15, 22), color: '#ffea00', description: 'Being investigated' },
+                { name: 'Escalated', count: rand(8, 15), color: '#ff9500', description: 'Requires attention' },
+                { name: 'Critical', count: rand(3, 8), color: '#ff3366', description: 'Immediate action' }
+            ];
+            
+            // Normalize to 100
+            const total = statuses.reduce((sum, s) => sum + s.count, 0);
+            let normalized = statuses.map(s => ({
+                ...s,
+                cells: Math.round((s.count / total) * 100)
+            }));
+            
+            // Adjust to exactly 100
+            const diff = 100 - normalized.reduce((sum, s) => sum + s.cells, 0);
+            normalized[0].cells += diff;
+            
+            // Generate cells
+            let cells = [];
+            normalized.forEach(status => {
+                for (let i = 0; i < status.cells; i++) {
+                    cells.push(status.color);
+                }
+            });
+            
+            // Shuffle for visual appeal
+            cells = cells.sort(() => Math.random() - 0.5);
+            
+            container.innerHTML = cells.map((color, i) => `
+                <div class="w-full aspect-square rounded-sm transition-all duration-300 hover:scale-125 cursor-pointer animate-fade" 
+                     style="background-color: ${color}; animation-delay: ${i * 10}ms; opacity: 0.85;"
+                     title="${normalized.find(s => s.color === color)?.name}"></div>
+            `).join('');
+            
+            // Update legend
+            legendContainer.innerHTML = normalized.map(status => `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-sm" style="background-color: ${status.color}"></div>
+                        <span class="text-sm text-gray-300">${status.name}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">${status.description}</span>
+                        <span class="font-mono text-sm font-bold" style="color: ${status.color}">${status.cells}%</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update MTTR
+            document.getElementById('mttr').textContent = `${(rand(80, 200) / 10).toFixed(1)} min`;
+        }
+        
+        function updateTimeSeriesChart() {
+            const hours = Array.from({ length: 24 }, (_, i) => {
+                const h = (new Date().getHours() - 23 + i + 24) % 24;
+                return `${h.toString().padStart(2, '0')}:00`;
+            });
+            
+            // Generate actual data
+            const actual = hours.map((_, i) => {
+                let base = rand(800, 1200);
+                // Add patterns
+                if (i > 6 && i < 18) base += rand(200, 400);
+                if (i === 10 || i === 14) base += rand(300, 500);
+                return base;
+            });
+            
+            // Generate predictions (slight offset from actual)
+            const predicted = actual.map((v, i) => {
+                if (i < 18) return v + rand(-50, 50);
+                return v + rand(100, 300); // Future prediction diverges
+            });
+            
+            // Confidence bounds
+            const upperBound = predicted.map(v => v + rand(150, 250));
+            const lowerBound = predicted.map(v => Math.max(0, v - rand(150, 250)));
+            
+            charts.timeSeries.data.labels = hours;
+            charts.timeSeries.data.datasets[0].data = actual.slice(0, 18).concat(Array(6).fill(null));
+            charts.timeSeries.data.datasets[1].data = predicted;
+            charts.timeSeries.data.datasets[2].data = upperBound;
+            charts.timeSeries.data.datasets[3].data = lowerBound;
+            charts.timeSeries.update('none');
+            
+            document.getElementById('forecastAccuracy').textContent = `${(rand(920, 980) / 10).toFixed(1)}%`;
+            document.getElementById('predictedSpike').textContent = `+${rand(12, 25)}% in ${rand(2, 6)}h`;
+        }
+        
+        function updateAnomalyChart() {
+            const minutes = Array.from({ length: 60 }, (_, i) => {
+                const m = (60 - i);
+                return `-${m}m`;
+            });
+            minutes.push('now');
+            
+            const baseline = 1200;
+            const threshold = 1800;
+            
+            // Generate traffic with anomalies
+            const traffic = minutes.map((_, i) => {
+                let value = baseline + rand(-200, 200);
+                // Add anomaly spikes
+                if (i === 15 || i === 32 || i === 45 || i === 52) {
+                    value = rand(1900, 2500);
+                }
+                return value;
+            });
+            
+            // Mark anomalies
+            const anomalies = traffic.map((v, i) => v > threshold ? v : null);
+            
+            charts.anomaly.data.labels = minutes;
+            charts.anomaly.data.datasets[0].data = traffic;
+            charts.anomaly.data.datasets[1].data = Array(minutes.length).fill(baseline);
+            charts.anomaly.data.datasets[2].data = Array(minutes.length).fill(threshold);
+            charts.anomaly.data.datasets[3].data = anomalies;
+            charts.anomaly.update('none');
+            
+            const anomalyCount = anomalies.filter(a => a !== null).length;
+            const currentVal = traffic[traffic.length - 1];
+            const deviation = ((currentVal - baseline) / baseline * 100).toFixed(0);
+            
+            document.getElementById('anomalyCount').textContent = anomalyCount;
+            document.getElementById('baselineValue').textContent = `${(baseline / 1000).toFixed(1)}K/s`;
+            document.getElementById('currentValue').textContent = `${(currentVal / 1000).toFixed(1)}K/s`;
+            document.getElementById('deviationValue').textContent = `${deviation > 0 ? '+' : ''}${deviation}%`;
+        }
+        
+        function updateAnomalyRange(range) {
+            // Update button styles
+            document.querySelectorAll('[onclick^="updateAnomalyRange"]').forEach(btn => {
+                btn.className = 'px-3 py-1 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors';
+            });
+            event.target.className = 'px-3 py-1 text-xs font-mono bg-cyber-cyan/20 text-cyber-cyan rounded border border-cyber-cyan/30 hover:bg-cyber-cyan/30 transition-colors';
+            
+            updateAnomalyChart();
+        }
+        
         function updateStorySection() {
             const stories = [
                 {
@@ -1143,6 +1770,13 @@
             generateIncidents(20);
             updateLastUpdate();
             
+            // New chart updates
+            updateDecisionTree();
+            updateExpandedDecisionTree();
+            updateWaffleChart();
+            updateTimeSeriesChart();
+            updateAnomalyChart();
+            
             // Initial live feed
             for (let i = 0; i < 5; i++) {
                 setTimeout(() => updateLiveFeed(), i * 200);
@@ -1154,7 +1788,12 @@
             setInterval(() => {
                 updateKPIs();
                 updateDOSChart();
+                updateAnomalyChart();
+                updateTimeSeriesChart();
             }, 30000);
+            
+            // Update waffle chart periodically
+            setInterval(updateWaffleChart, 60000);
         }
         
         // Start the dashboard
