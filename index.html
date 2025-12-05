@@ -6,6 +6,8 @@
     <title>CyberShield Analytics | Threat Intelligence Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -199,6 +201,90 @@
         .detail-card:hover {
             transform: translateY(-2px);
             border-color: rgba(0, 240, 255, 0.5);
+        }
+        
+        /* Map Styles */
+        #threatMap {
+            background: #0a0e17;
+            border-radius: 12px;
+        }
+        .leaflet-container {
+            background: #0a0e17 !important;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .leaflet-tile {
+            filter: brightness(0.6) saturate(0.8) hue-rotate(180deg) invert(1);
+        }
+        .leaflet-control-zoom {
+            border: 1px solid rgba(0, 240, 255, 0.3) !important;
+            background: #111827 !important;
+        }
+        .leaflet-control-zoom a {
+            background: #111827 !important;
+            color: #00f0ff !important;
+            border-color: rgba(0, 240, 255, 0.2) !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background: #1e3a5f !important;
+        }
+        .leaflet-control-attribution {
+            background: rgba(17, 24, 39, 0.8) !important;
+            color: #6b7280 !important;
+            font-size: 9px !important;
+        }
+        .leaflet-control-attribution a {
+            color: #00f0ff !important;
+        }
+        
+        .cyber-marker {
+            position: relative;
+        }
+        .cyber-marker::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            animation: markerPulse 2s ease-out infinite;
+        }
+        @keyframes markerPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 51, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
+        }
+        
+        .incident-popup .leaflet-popup-content-wrapper {
+            background: #111827 !important;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px !important;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+        }
+        .incident-popup .leaflet-popup-content {
+            margin: 0 !important;
+            color: white;
+        }
+        .incident-popup .leaflet-popup-tip {
+            background: #111827 !important;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        .leaflet-popup-close-button {
+            color: #6b7280 !important;
+            font-size: 20px !important;
+            padding: 8px !important;
+        }
+        .leaflet-popup-close-button:hover {
+            color: #ff3366 !important;
+        }
+        
+        .attack-line {
+            stroke-dasharray: 10, 5;
+            animation: dashMove 1s linear infinite;
+        }
+        @keyframes dashMove {
+            to { stroke-dashoffset: -15; }
         }
     </style>
 </head>
@@ -669,6 +755,106 @@
             </div>
         </div>
         
+        <!-- Global Threat Map Section -->
+        <div class="cyber-border rounded-xl bg-cyber-card/50 backdrop-blur overflow-hidden">
+            <div class="p-6 border-b border-cyber-border">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyber-red to-cyber-orange flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-display text-xl tracking-wider">GLOBAL THREAT MAP</h3>
+                            <p class="text-xs text-gray-500 font-mono mt-1">Real-time visualization of cyber attacks worldwide • <span class="text-cyber-cyan">Click markers for incident details</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-cyber-red animate-pulse"></span>
+                                <span class="text-xs text-gray-400">Critical</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-cyber-orange"></span>
+                                <span class="text-xs text-gray-400">High</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-cyber-yellow"></span>
+                                <span class="text-xs text-gray-400">Medium</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-cyber-cyan"></span>
+                                <span class="text-xs text-gray-400">Low</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="refreshMapIncidents()" class="px-3 py-1.5 text-xs font-mono bg-cyber-cyan/20 text-cyber-cyan rounded border border-cyber-cyan/30 hover:bg-cyber-cyan/30 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                REFRESH
+                            </button>
+                            <button onclick="toggleHeatmap()" id="heatmapToggle" class="px-3 py-1.5 text-xs font-mono bg-cyber-border rounded hover:bg-cyber-border/70 transition-colors">
+                                HEATMAP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Stats Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 bg-cyber-dark/50 border-b border-cyber-border">
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">LIVE ATTACKS</p>
+                    <p class="text-xl font-bold text-cyber-red" id="mapLiveAttacks">0</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">COUNTRIES AFFECTED</p>
+                    <p class="text-xl font-bold text-cyber-orange" id="mapCountries">0</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">TOP SOURCE</p>
+                    <p class="text-xl font-bold text-cyber-yellow" id="mapTopSource">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">TOP TARGET</p>
+                    <p class="text-xl font-bold text-cyber-cyan" id="mapTopTarget">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">ATTACK RATE</p>
+                    <p class="text-xl font-bold text-cyber-purple" id="mapAttackRate">0/min</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 font-mono">BLOCKED</p>
+                    <p class="text-xl font-bold text-cyber-green" id="mapBlocked">0%</p>
+                </div>
+            </div>
+            
+            <!-- The Map -->
+            <div id="threatMap" class="h-[500px] lg:h-[600px] relative">
+                <!-- Map will be initialized here -->
+                <div id="mapLoading" class="absolute inset-0 flex items-center justify-center bg-cyber-dark/80 z-[1000]">
+                    <div class="text-center">
+                        <div class="w-16 h-16 border-4 border-cyber-cyan/30 border-t-cyber-cyan rounded-full animate-spin mx-auto mb-4"></div>
+                        <p class="text-sm text-gray-400 font-mono">LOADING THREAT DATA...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Map Events -->
+            <div class="p-4 bg-cyber-dark/50 border-t border-cyber-border">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-mono text-gray-400">RECENT MAP EVENTS</h4>
+                    <span class="text-xs text-gray-500 font-mono">Auto-updating</span>
+                </div>
+                <div id="mapEventsFeed" class="flex gap-3 overflow-x-auto pb-2">
+                    <!-- Events will be populated here -->
+                </div>
+            </div>
+        </div>
+        
     </main>
     
     <!-- Footer -->
@@ -810,16 +996,40 @@
         
         const attackTypes = ['DDoS', 'Malware', 'Phishing', 'Ransomware', 'SQL Injection', 'XSS', 'Brute Force', 'Zero-Day'];
         const countries = [
-            { code: 'CN', name: 'China', flag: '🇨🇳' },
-            { code: 'RU', name: 'Russia', flag: '🇷🇺' },
-            { code: 'US', name: 'United States', flag: '🇺🇸' },
-            { code: 'KP', name: 'North Korea', flag: '🇰🇵' },
-            { code: 'IR', name: 'Iran', flag: '🇮🇷' },
-            { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-            { code: 'IN', name: 'India', flag: '🇮🇳' },
-            { code: 'VN', name: 'Vietnam', flag: '🇻🇳' },
-            { code: 'ID', name: 'Indonesia', flag: '🇮🇩' },
-            { code: 'UA', name: 'Ukraine', flag: '🇺🇦' }
+            { code: 'CN', name: 'China', flag: '🇨🇳', lat: 35.8617, lng: 104.1954 },
+            { code: 'RU', name: 'Russia', flag: '🇷🇺', lat: 61.5240, lng: 105.3188 },
+            { code: 'US', name: 'United States', flag: '🇺🇸', lat: 37.0902, lng: -95.7129 },
+            { code: 'KP', name: 'North Korea', flag: '🇰🇵', lat: 40.3399, lng: 127.5101 },
+            { code: 'IR', name: 'Iran', flag: '🇮🇷', lat: 32.4279, lng: 53.6880 },
+            { code: 'BR', name: 'Brazil', flag: '🇧🇷', lat: -14.2350, lng: -51.9253 },
+            { code: 'IN', name: 'India', flag: '🇮🇳', lat: 20.5937, lng: 78.9629 },
+            { code: 'VN', name: 'Vietnam', flag: '🇻🇳', lat: 14.0583, lng: 108.2772 },
+            { code: 'ID', name: 'Indonesia', flag: '🇮🇩', lat: -0.7893, lng: 113.9213 },
+            { code: 'UA', name: 'Ukraine', flag: '🇺🇦', lat: 48.3794, lng: 31.1656 },
+            { code: 'DE', name: 'Germany', flag: '🇩🇪', lat: 51.1657, lng: 10.4515 },
+            { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', lat: 55.3781, lng: -3.4360 },
+            { code: 'FR', name: 'France', flag: '🇫🇷', lat: 46.2276, lng: 2.2137 },
+            { code: 'JP', name: 'Japan', flag: '🇯🇵', lat: 36.2048, lng: 138.2529 },
+            { code: 'KR', name: 'South Korea', flag: '🇰🇷', lat: 35.9078, lng: 127.7669 },
+            { code: 'AU', name: 'Australia', flag: '🇦🇺', lat: -25.2744, lng: 133.7751 },
+            { code: 'NL', name: 'Netherlands', flag: '🇳🇱', lat: 52.1326, lng: 5.2913 },
+            { code: 'PL', name: 'Poland', flag: '🇵🇱', lat: 51.9194, lng: 19.1451 },
+            { code: 'SG', name: 'Singapore', flag: '🇸🇬', lat: 1.3521, lng: 103.8198 },
+            { code: 'CA', name: 'Canada', flag: '🇨🇦', lat: 56.1304, lng: -106.3468 }
+        ];
+        
+        // Target locations (data centers, cities)
+        const targetLocations = [
+            { name: 'New York DC', lat: 40.7128, lng: -74.0060, country: 'US' },
+            { name: 'London DC', lat: 51.5074, lng: -0.1278, country: 'GB' },
+            { name: 'Frankfurt DC', lat: 50.1109, lng: 8.6821, country: 'DE' },
+            { name: 'Singapore DC', lat: 1.3521, lng: 103.8198, country: 'SG' },
+            { name: 'Tokyo DC', lat: 35.6762, lng: 139.6503, country: 'JP' },
+            { name: 'Sydney DC', lat: -33.8688, lng: 151.2093, country: 'AU' },
+            { name: 'São Paulo DC', lat: -23.5505, lng: -46.6333, country: 'BR' },
+            { name: 'Amsterdam DC', lat: 52.3676, lng: 4.9041, country: 'NL' },
+            { name: 'Mumbai DC', lat: 19.0760, lng: 72.8777, country: 'IN' },
+            { name: 'Toronto DC', lat: 43.6532, lng: -79.3832, country: 'CA' }
         ];
         const severityLevels = ['critical', 'high', 'medium', 'low'];
         const targets = ['Web Server', 'Database', 'API Gateway', 'Auth Service', 'CDN', 'Email Server', 'DNS', 'Firewall'];
@@ -2237,11 +2447,436 @@
         });
         
         // ================================
+        // MAP FUNCTIONS
+        // ================================
+        
+        let threatMap = null;
+        let mapMarkers = [];
+        let mapLines = [];
+        let mapIncidents = [];
+        let heatmapEnabled = false;
+        let heatmapLayer = null;
+        
+        function initThreatMap() {
+            // Initialize the map
+            threatMap = L.map('threatMap', {
+                center: [20, 0],
+                zoom: 2,
+                minZoom: 2,
+                maxZoom: 8,
+                zoomControl: true,
+                attributionControl: true
+            });
+            
+            // Add dark-themed tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(threatMap);
+            
+            // Generate initial incidents
+            generateMapIncidents(30);
+            
+            // Hide loading
+            setTimeout(() => {
+                document.getElementById('mapLoading').style.display = 'none';
+            }, 1500);
+            
+            // Auto-add new incidents
+            setInterval(() => {
+                if (mapIncidents.length < 50) {
+                    addNewMapIncident();
+                }
+            }, 3000);
+            
+            // Update stats
+            updateMapStats();
+            setInterval(updateMapStats, 5000);
+        }
+        
+        function generateMapIncidents(count) {
+            for (let i = 0; i < count; i++) {
+                const incident = createMapIncident();
+                mapIncidents.push(incident);
+                addMarkerToMap(incident);
+            }
+            updateMapEventsFeed();
+        }
+        
+        function createMapIncident() {
+            const source = countries[rand(0, countries.length - 1)];
+            const target = targetLocations[rand(0, targetLocations.length - 1)];
+            const severity = severityLevels[rand(0, severityLevels.length - 1)];
+            const type = attackTypes[rand(0, attackTypes.length - 1)];
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - rand(0, 120));
+            
+            return {
+                id: generateEventID(),
+                source: source,
+                target: target,
+                severity: severity,
+                type: type,
+                timestamp: now,
+                ip: generateIP(),
+                packets: rand(100, 50000),
+                bandwidth: (Math.random() * 10).toFixed(2),
+                status: Math.random() > 0.15 ? 'Blocked' : 'Investigating',
+                // Add some randomness to marker position
+                markerLat: source.lat + (Math.random() - 0.5) * 5,
+                markerLng: source.lng + (Math.random() - 0.5) * 5
+            };
+        }
+        
+        function getSeverityColor(severity) {
+            const colors = {
+                'critical': '#ff3366',
+                'high': '#ff9500',
+                'medium': '#ffea00',
+                'low': '#00f0ff'
+            };
+            return colors[severity] || '#00f0ff';
+        }
+        
+        function createCustomIcon(severity, type) {
+            const color = getSeverityColor(severity);
+            const size = severity === 'critical' ? 16 : severity === 'high' ? 14 : 12;
+            
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="position: relative;">
+                        <div style="
+                            width: ${size}px;
+                            height: ${size}px;
+                            background: ${color};
+                            border-radius: 50%;
+                            border: 2px solid rgba(255,255,255,0.3);
+                            box-shadow: 0 0 10px ${color}, 0 0 20px ${color}40;
+                            ${severity === 'critical' ? 'animation: markerPulse 1.5s ease-out infinite;' : ''}
+                        "></div>
+                    </div>
+                `,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
+            });
+        }
+        
+        function addMarkerToMap(incident) {
+            const marker = L.marker([incident.markerLat, incident.markerLng], {
+                icon: createCustomIcon(incident.severity, incident.type)
+            });
+            
+            // Create popup content
+            const popupContent = createPopupContent(incident);
+            
+            marker.bindPopup(popupContent, {
+                className: 'incident-popup',
+                maxWidth: 350,
+                minWidth: 300
+            });
+            
+            marker.on('click', function() {
+                // Draw attack line when clicked
+                drawAttackLine(incident);
+            });
+            
+            marker.addTo(threatMap);
+            mapMarkers.push(marker);
+            
+            // Optionally draw line for critical/high severity
+            if (incident.severity === 'critical') {
+                drawAttackLine(incident);
+            }
+        }
+        
+        function createPopupContent(incident) {
+            const severityColorClass = {
+                'critical': 'bg-red-500/20 text-red-400 border-red-500/30',
+                'high': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                'medium': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                'low': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+            };
+            
+            const statusColor = incident.status === 'Blocked' ? 'text-green-400' : 'text-yellow-400';
+            const timeAgo = getTimeAgo(incident.timestamp);
+            
+            return `
+                <div style="padding: 16px; font-family: 'Space Grotesk', sans-serif;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <span style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #6b7280;">${incident.id}</span>
+                        <span style="
+                            font-size: 10px;
+                            padding: 2px 8px;
+                            border-radius: 4px;
+                            background: ${getSeverityColor(incident.severity)}20;
+                            color: ${getSeverityColor(incident.severity)};
+                            border: 1px solid ${getSeverityColor(incident.severity)}50;
+                            font-weight: 600;
+                        ">${incident.severity.toUpperCase()}</span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                        <span style="
+                            padding: 4px 10px;
+                            border-radius: 6px;
+                            background: ${typeColors[incident.type]}20;
+                            color: ${typeColors[incident.type]};
+                            font-size: 12px;
+                            font-weight: 500;
+                        ">${incident.type}</span>
+                        <span style="font-size: 11px; color: #9ca3af;">${timeAgo}</span>
+                    </div>
+                    
+                    <div style="background: #0a0e17; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <div>
+                                <p style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">SOURCE</p>
+                                <p style="font-size: 13px; color: white;">${incident.source.flag} ${incident.source.name}</p>
+                                <p style="font-size: 10px; color: #6b7280; font-family: 'JetBrains Mono', monospace;">${incident.ip}</p>
+                            </div>
+                            <div style="color: #6b7280;">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                </svg>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">TARGET</p>
+                                <p style="font-size: 13px; color: white;">${incident.target.name}</p>
+                                <p style="font-size: 10px; color: #6b7280;">${incident.target.country}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+                        <div style="text-align: center; padding: 8px; background: #1e3a5f20; border-radius: 6px;">
+                            <p style="font-size: 9px; color: #6b7280;">PACKETS</p>
+                            <p style="font-size: 14px; font-weight: 600; color: #00f0ff;">${incident.packets.toLocaleString()}</p>
+                        </div>
+                        <div style="text-align: center; padding: 8px; background: #1e3a5f20; border-radius: 6px;">
+                            <p style="font-size: 9px; color: #6b7280;">BANDWIDTH</p>
+                            <p style="font-size: 14px; font-weight: 600; color: #ff9500;">${incident.bandwidth} Gbps</p>
+                        </div>
+                        <div style="text-align: center; padding: 8px; background: #1e3a5f20; border-radius: 6px;">
+                            <p style="font-size: 9px; color: #6b7280;">STATUS</p>
+                            <p style="font-size: 14px; font-weight: 600; color: ${incident.status === 'Blocked' ? '#00ff88' : '#ffea00'};">${incident.status}</p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="openModal('${incident.type}', { count: ${rand(500, 2000)} })" style="
+                        width: 100%;
+                        padding: 10px;
+                        background: linear-gradient(135deg, #00f0ff20, #a855f720);
+                        border: 1px solid #00f0ff30;
+                        border-radius: 8px;
+                        color: #00f0ff;
+                        font-size: 12px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: 'JetBrains Mono', monospace;
+                    " onmouseover="this.style.background='linear-gradient(135deg, #00f0ff30, #a855f730)'" 
+                       onmouseout="this.style.background='linear-gradient(135deg, #00f0ff20, #a855f720)'">
+                        VIEW FULL ANALYSIS →
+                    </button>
+                </div>
+            `;
+        }
+        
+        function drawAttackLine(incident) {
+            // Remove existing lines
+            mapLines.forEach(line => threatMap.removeLayer(line));
+            mapLines = [];
+            
+            // Create curved line from source to target
+            const source = [incident.markerLat, incident.markerLng];
+            const target = [incident.target.lat, incident.target.lng];
+            
+            // Create polyline with gradient effect
+            const line = L.polyline([source, target], {
+                color: getSeverityColor(incident.severity),
+                weight: 2,
+                opacity: 0.8,
+                dashArray: '10, 5',
+                className: 'attack-line'
+            }).addTo(threatMap);
+            
+            mapLines.push(line);
+            
+            // Add animated dot along the line
+            animateAttackDot(source, target, incident.severity);
+            
+            // Remove line after delay
+            setTimeout(() => {
+                if (mapLines.includes(line)) {
+                    threatMap.removeLayer(line);
+                }
+            }, 5000);
+        }
+        
+        function animateAttackDot(source, target, severity) {
+            const color = getSeverityColor(severity);
+            let progress = 0;
+            
+            const dot = L.circleMarker(source, {
+                radius: 4,
+                fillColor: color,
+                fillOpacity: 1,
+                color: 'white',
+                weight: 1
+            }).addTo(threatMap);
+            
+            const animate = () => {
+                progress += 0.02;
+                if (progress <= 1) {
+                    const lat = source[0] + (target[0] - source[0]) * progress;
+                    const lng = source[1] + (target[1] - source[1]) * progress;
+                    dot.setLatLng([lat, lng]);
+                    requestAnimationFrame(animate);
+                } else {
+                    threatMap.removeLayer(dot);
+                }
+            };
+            
+            animate();
+        }
+        
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            return `${hours}h ago`;
+        }
+        
+        function addNewMapIncident() {
+            const incident = createMapIncident();
+            incident.timestamp = new Date();
+            mapIncidents.unshift(incident);
+            
+            // Remove oldest if too many
+            if (mapIncidents.length > 50) {
+                const oldest = mapIncidents.pop();
+                // Remove marker for oldest
+                if (mapMarkers.length > 50) {
+                    const oldMarker = mapMarkers.shift();
+                    threatMap.removeLayer(oldMarker);
+                }
+            }
+            
+            addMarkerToMap(incident);
+            updateMapEventsFeed();
+            
+            // Flash effect for new incident
+            if (incident.severity === 'critical' || incident.severity === 'high') {
+                drawAttackLine(incident);
+            }
+        }
+        
+        function refreshMapIncidents() {
+            // Clear existing
+            mapMarkers.forEach(marker => threatMap.removeLayer(marker));
+            mapLines.forEach(line => threatMap.removeLayer(line));
+            mapMarkers = [];
+            mapLines = [];
+            mapIncidents = [];
+            
+            // Show loading briefly
+            const loading = document.getElementById('mapLoading');
+            loading.style.display = 'flex';
+            
+            setTimeout(() => {
+                generateMapIncidents(30);
+                loading.style.display = 'none';
+            }, 800);
+        }
+        
+        function toggleHeatmap() {
+            const btn = document.getElementById('heatmapToggle');
+            heatmapEnabled = !heatmapEnabled;
+            
+            if (heatmapEnabled) {
+                btn.classList.add('bg-cyber-cyan/20', 'text-cyber-cyan', 'border', 'border-cyber-cyan/30');
+                btn.classList.remove('bg-cyber-border');
+                // Add visual indicator (simplified heatmap effect)
+                mapMarkers.forEach(marker => {
+                    marker.setOpacity(0.3);
+                });
+            } else {
+                btn.classList.remove('bg-cyber-cyan/20', 'text-cyber-cyan', 'border', 'border-cyber-cyan/30');
+                btn.classList.add('bg-cyber-border');
+                mapMarkers.forEach(marker => {
+                    marker.setOpacity(1);
+                });
+            }
+        }
+        
+        function updateMapStats() {
+            document.getElementById('mapLiveAttacks').textContent = mapIncidents.length;
+            
+            const uniqueCountries = new Set(mapIncidents.map(i => i.source.code));
+            document.getElementById('mapCountries').textContent = uniqueCountries.size;
+            
+            // Find top source
+            const sourceCounts = {};
+            mapIncidents.forEach(i => {
+                sourceCounts[i.source.name] = (sourceCounts[i.source.name] || 0) + 1;
+            });
+            const topSource = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])[0];
+            document.getElementById('mapTopSource').textContent = topSource ? topSource[0].split(' ')[0] : '--';
+            
+            // Find top target
+            const targetCounts = {};
+            mapIncidents.forEach(i => {
+                targetCounts[i.target.name] = (targetCounts[i.target.name] || 0) + 1;
+            });
+            const topTarget = Object.entries(targetCounts).sort((a, b) => b[1] - a[1])[0];
+            document.getElementById('mapTopTarget').textContent = topTarget ? topTarget[0].replace(' DC', '') : '--';
+            
+            document.getElementById('mapAttackRate').textContent = `${rand(15, 45)}/min`;
+            document.getElementById('mapBlocked').textContent = `${rand(94, 99)}%`;
+        }
+        
+        function updateMapEventsFeed() {
+            const container = document.getElementById('mapEventsFeed');
+            const recentEvents = mapIncidents.slice(0, 10);
+            
+            container.innerHTML = recentEvents.map(incident => `
+                <div class="flex-shrink-0 w-64 p-3 rounded-lg border cursor-pointer transition-all hover:scale-105"
+                     style="background: ${getSeverityColor(incident.severity)}10; border-color: ${getSeverityColor(incident.severity)}30;"
+                     onclick="focusOnIncident('${incident.id}')">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-mono" style="color: ${getSeverityColor(incident.severity)};">${incident.type}</span>
+                        <span class="text-xs text-gray-500">${getTimeAgo(incident.timestamp)}</span>
+                    </div>
+                    <p class="text-xs text-gray-400 truncate">${incident.source.flag} ${incident.source.name} → ${incident.target.name}</p>
+                </div>
+            `).join('');
+        }
+        
+        function focusOnIncident(incidentId) {
+            const incident = mapIncidents.find(i => i.id === incidentId);
+            if (incident) {
+                threatMap.setView([incident.markerLat, incident.markerLng], 5, { animate: true });
+                drawAttackLine(incident);
+                
+                // Find and open the marker popup
+                const markerIndex = mapIncidents.indexOf(incident);
+                if (mapMarkers[mapMarkers.length - 1 - markerIndex]) {
+                    mapMarkers[mapMarkers.length - 1 - markerIndex].openPopup();
+                }
+            }
+        }
+        
+        // ================================
         // INITIALIZATION
         // ================================
         
         function init() {
             initCharts();
+            initThreatMap();
             updateKPIs();
             updateTimelineChart();
             updateDistributionChart();
