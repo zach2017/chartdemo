@@ -139,6 +139,67 @@
         ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
         
         .chart-container { position: relative; }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 16, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            z-index: 101;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-container.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .modal-glow {
+            box-shadow: 0 0 60px rgba(0, 240, 255, 0.15), 0 0 100px rgba(168, 85, 247, 0.1);
+        }
+        
+        .clickable-chart {
+            cursor: pointer;
+        }
+        .clickable-chart:hover {
+            filter: brightness(1.1);
+        }
+        
+        @keyframes modalPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.4); }
+        }
+        .modal-pulse {
+            animation: modalPulse 2s ease-in-out infinite;
+        }
+        
+        .detail-card {
+            transition: all 0.2s ease;
+        }
+        .detail-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 240, 255, 0.5);
+        }
     </style>
 </head>
 <body class="bg-cyber-darker text-white font-body min-h-screen grid-bg">
@@ -311,6 +372,9 @@
                         <h3 class="font-display text-lg tracking-wider">ATTACK DISTRIBUTION</h3>
                         <p class="text-xs text-gray-500 font-mono mt-1">By attack vector type</p>
                     </div>
+                    <span class="px-2 py-1 text-xs font-mono bg-cyber-cyan/10 text-cyber-cyan rounded border border-cyber-cyan/20 animate-pulse-slow">
+                        CLICK FOR DETAILS
+                    </span>
                 </div>
                 <div class="chart-container h-56">
                     <canvas id="distributionChart"></canvas>
@@ -566,7 +630,7 @@
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h3 class="font-display text-lg tracking-wider">RECENT SECURITY INCIDENTS</h3>
-                    <p class="text-xs text-gray-500 font-mono mt-1">Last 20 recorded events with full attribution</p>
+                    <p class="text-xs text-gray-500 font-mono mt-1">Last 20 recorded events with full attribution • <span class="text-cyber-cyan">Click row for details</span></p>
                 </div>
                 <div class="flex gap-4">
                     <select id="severityFilter" class="bg-cyber-dark border border-cyber-border rounded px-3 py-1 text-sm font-mono focus:outline-none focus:border-cyber-cyan" onchange="filterIncidents()">
@@ -620,6 +684,125 @@
         </div>
     </footer>
     
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+    
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal-container">
+        <div class="cyber-border rounded-2xl bg-cyber-card modal-glow overflow-hidden">
+            <!-- Modal Header -->
+            <div class="relative p-6 border-b border-cyber-border bg-gradient-to-r from-cyber-dark via-cyber-card to-cyber-dark">
+                <button onclick="closeModal()" class="absolute top-4 right-4 w-10 h-10 rounded-lg bg-cyber-dark/50 border border-cyber-border flex items-center justify-center hover:border-cyber-red hover:text-cyber-red transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div class="flex items-center gap-4">
+                    <div id="modalIcon" class="w-14 h-14 rounded-xl flex items-center justify-center modal-pulse">
+                        <!-- Icon inserted dynamically -->
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-mono tracking-wider">ATTACK VECTOR ANALYSIS</p>
+                        <h2 id="modalTitle" class="font-display text-2xl tracking-wider mt-1">Loading...</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+                <!-- Quick Stats Row -->
+                <div id="modalStats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Stats inserted dynamically -->
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Trend Chart -->
+                    <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50">
+                        <h3 class="text-sm font-mono text-gray-400 mb-4">24-HOUR TREND</h3>
+                        <div class="h-48">
+                            <canvas id="modalTrendChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Severity Breakdown -->
+                    <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50">
+                        <h3 class="text-sm font-mono text-gray-400 mb-4">SEVERITY BREAKDOWN</h3>
+                        <div class="h-48">
+                            <canvas id="modalSeverityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Details Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Top Sources -->
+                    <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50 detail-card">
+                        <h3 class="text-sm font-mono text-gray-400 mb-4">TOP SOURCE COUNTRIES</h3>
+                        <div id="modalSources" class="space-y-3">
+                            <!-- Sources inserted dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Targeted Systems -->
+                    <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50 detail-card">
+                        <h3 class="text-sm font-mono text-gray-400 mb-4">TARGETED SYSTEMS</h3>
+                        <div id="modalTargets" class="space-y-3">
+                            <!-- Targets inserted dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Attack Signatures -->
+                    <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50 detail-card">
+                        <h3 class="text-sm font-mono text-gray-400 mb-4">COMMON SIGNATURES</h3>
+                        <div id="modalSignatures" class="space-y-2">
+                            <!-- Signatures inserted dynamically -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Incidents Table -->
+                <div class="cyber-border rounded-xl p-4 bg-cyber-dark/50">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-mono text-gray-400">RECENT INCIDENTS</h3>
+                        <span id="modalIncidentCount" class="text-xs font-mono text-cyber-cyan">0 incidents</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-xs text-gray-500 font-mono border-b border-cyber-border">
+                                    <th class="pb-2 pr-4">TIME</th>
+                                    <th class="pb-2 pr-4">SOURCE</th>
+                                    <th class="pb-2 pr-4">TARGET</th>
+                                    <th class="pb-2 pr-4">SEVERITY</th>
+                                    <th class="pb-2">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalIncidents" class="text-sm">
+                                <!-- Incidents inserted dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Recommendations -->
+                <div id="modalRecommendations" class="cyber-border rounded-xl p-4 bg-gradient-to-r from-cyber-purple/10 to-cyber-cyan/10 border-cyber-purple/30">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-cyber-purple/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-cyber-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white mb-1">AI Recommendation</h4>
+                            <p id="modalRecommendationText" class="text-sm text-gray-400">Loading recommendation...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // ================================
         // DATA GENERATION & CONFIGURATION
@@ -643,6 +826,59 @@
         
         let allIncidents = [];
         let charts = {};
+        let modalCharts = {};
+        
+        // Attack type detailed info
+        const attackTypeDetails = {
+            'DDoS': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+                color: '#ff9500',
+                signatures: ['SYN Flood', 'UDP Amplification', 'HTTP GET Flood', 'Slowloris', 'DNS Amplification', 'NTP Reflection'],
+                recommendation: 'Implement rate limiting on edge servers and consider upgrading DDoS mitigation capacity. Current attack patterns suggest botnet coordination - recommend threat intel sharing with industry peers.'
+            },
+            'Malware': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`,
+                color: '#a855f7',
+                signatures: ['Trojan.GenericKD', 'Emotet Variant', 'Cobalt Strike Beacon', 'Mimikatz Activity', 'PowerShell Empire', 'Metasploit Payload'],
+                recommendation: 'Update endpoint detection rules and increase behavioral analysis sensitivity. Consider implementing application whitelisting on critical systems.'
+            },
+            'Phishing': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+                color: '#ffea00',
+                signatures: ['Credential Harvesting', 'O365 Impersonation', 'CEO Fraud BEC', 'Invoice Scam', 'Account Verification', 'Password Reset Lure'],
+                recommendation: 'Deploy AI-based email filtering and increase user awareness training frequency. Recent campaigns show improved social engineering - update detection signatures.'
+            },
+            'Ransomware': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`,
+                color: '#ff3366',
+                signatures: ['LockBit 3.0', 'BlackCat/ALPHV', 'Royal Ransomware', 'Play Ransomware', 'Clop Variant', 'Hive Legacy'],
+                recommendation: 'CRITICAL: Verify offline backup integrity immediately. Implement network segmentation to limit lateral movement. Review privileged access management policies.'
+            },
+            'SQL Injection': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>`,
+                color: '#00f0ff',
+                signatures: ['Union-based SQLi', 'Blind SQLi', 'Time-based SQLi', 'Error-based SQLi', 'Second Order SQLi', 'Out-of-band SQLi'],
+                recommendation: 'Audit all database queries for parameterized statements. Deploy WAF rules targeting SQLi patterns. Review database user permissions and implement least privilege.'
+            },
+            'XSS': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>`,
+                color: '#00ff88',
+                signatures: ['Reflected XSS', 'Stored XSS', 'DOM-based XSS', 'Self-XSS', 'mXSS Mutation', 'Polyglot Payload'],
+                recommendation: 'Implement Content Security Policy headers and review output encoding practices. Consider deploying client-side XSS protection libraries.'
+            },
+            'Brute Force': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>`,
+                color: '#ff6b6b',
+                signatures: ['SSH Bruteforce', 'RDP Attack', 'Web Login Attack', 'API Key Guessing', 'Credential Stuffing', 'Password Spraying'],
+                recommendation: 'Implement account lockout policies and deploy CAPTCHA on authentication endpoints. Consider implementing hardware security keys for privileged accounts.'
+            },
+            'Zero-Day': {
+                icon: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+                color: '#ff00ff',
+                signatures: ['Unknown Exploit', 'Novel Attack Vector', 'Unpatched Vuln', 'CVE Pending', 'Behavior Anomaly', 'Sandbox Evasion'],
+                recommendation: 'URGENT: Isolate affected systems immediately. Engage incident response team and consider external forensic analysis. Document all indicators of compromise for threat sharing.'
+            }
+        };
         
         // Generate random number within range
         function rand(min, max) {
@@ -802,9 +1038,23 @@
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((context.raw / total) * 100).toFixed(1);
                                     return `${context.label}: ${context.raw.toLocaleString()} (${percentage}%)`;
+                                },
+                                afterLabel: function() {
+                                    return 'Click for details →';
                                 }
                             }
                         }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const attackType = attackTypes[index];
+                            const count = charts.distribution.data.datasets[0].data[index];
+                            openModal(attackType, { count });
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
                     }
                 }
             });
@@ -1122,12 +1372,15 @@
             legendContainer.innerHTML = attackTypes.map((type, i) => {
                 const percentage = ((data[i] / total) * 100).toFixed(1);
                 return `
-                    <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center justify-between text-sm cursor-pointer hover:bg-cyber-border/20 rounded px-2 py-1 -mx-2 transition-colors" onclick="openModal('${type}', { count: ${data[i]} })">
                         <div class="flex items-center gap-2">
                             <div class="w-3 h-3 rounded-full" style="background: ${Object.values(typeColors)[i]}"></div>
                             <span class="text-gray-400">${type}</span>
                         </div>
-                        <span class="font-mono text-white">${percentage}%</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-white">${percentage}%</span>
+                            <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1196,7 +1449,8 @@
             const newEvent = generateIncident();
             
             const eventHTML = `
-                <div class="animate-slide p-3 rounded-lg border ${severityColors[newEvent.severity].border} ${severityColors[newEvent.severity].bg}">
+                <div class="animate-slide p-3 rounded-lg border ${severityColors[newEvent.severity].border} ${severityColors[newEvent.severity].bg} cursor-pointer hover:scale-[1.02] transition-transform"
+                     onclick="openModal('${newEvent.type}', { count: ${rand(500, 2000)} })">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-2">
                             <span class="status-dot ${newEvent.severity === 'critical' ? 'bg-cyber-red' : newEvent.severity === 'high' ? 'bg-cyber-orange' : 'bg-cyber-yellow'}"></span>
@@ -1695,7 +1949,9 @@
             container.innerHTML = incidents.map((incident, i) => {
                 const statusClass = incident.status === 'Mitigated' ? 'text-cyber-green' : 'text-cyber-yellow';
                 return `
-                    <tr class="border-b border-cyber-border/50 hover:bg-cyber-border/10 transition-colors animate-slide" style="animation-delay: ${i * 0.03}s">
+                    <tr class="border-b border-cyber-border/50 hover:bg-cyber-border/20 transition-colors animate-slide cursor-pointer" 
+                        style="animation-delay: ${i * 0.03}s"
+                        onclick="openModal('${incident.type}', { count: ${rand(500, 2000)} })">
                         <td class="py-3 pr-4 font-mono text-xs text-gray-400">${incident.timestamp}</td>
                         <td class="py-3 pr-4 font-mono text-xs text-cyber-cyan">${incident.eventId}</td>
                         <td class="py-3 pr-4">
@@ -1752,6 +2008,233 @@
             const now = new Date();
             document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-US', { hour12: false });
         }
+        
+        // ================================
+        // MODAL FUNCTIONS
+        // ================================
+        
+        function openModal(attackType, attackData) {
+            const overlay = document.getElementById('modalOverlay');
+            const modal = document.getElementById('detailModal');
+            const details = attackTypeDetails[attackType];
+            
+            // Set header
+            document.getElementById('modalTitle').textContent = attackType.toUpperCase() + ' ATTACKS';
+            document.getElementById('modalIcon').innerHTML = details.icon;
+            document.getElementById('modalIcon').style.backgroundColor = details.color + '30';
+            
+            // Generate random stats for this attack type
+            const totalCount = attackData.count || rand(500, 3000);
+            const blockedPct = rand(92, 99);
+            const avgSeverity = ['Low', 'Medium', 'High'][rand(0, 2)];
+            const peakHour = rand(0, 23);
+            
+            // Populate stats
+            document.getElementById('modalStats').innerHTML = `
+                <div class="cyber-border rounded-lg p-4 bg-cyber-dark/50 text-center">
+                    <p class="text-xs text-gray-500 font-mono mb-1">TOTAL INCIDENTS</p>
+                    <p class="text-2xl font-bold" style="color: ${details.color}">${totalCount.toLocaleString()}</p>
+                </div>
+                <div class="cyber-border rounded-lg p-4 bg-cyber-dark/50 text-center">
+                    <p class="text-xs text-gray-500 font-mono mb-1">BLOCKED RATE</p>
+                    <p class="text-2xl font-bold text-cyber-green">${blockedPct}%</p>
+                </div>
+                <div class="cyber-border rounded-lg p-4 bg-cyber-dark/50 text-center">
+                    <p class="text-xs text-gray-500 font-mono mb-1">AVG SEVERITY</p>
+                    <p class="text-2xl font-bold text-cyber-orange">${avgSeverity}</p>
+                </div>
+                <div class="cyber-border rounded-lg p-4 bg-cyber-dark/50 text-center">
+                    <p class="text-xs text-gray-500 font-mono mb-1">PEAK HOUR</p>
+                    <p class="text-2xl font-bold text-cyber-cyan">${peakHour.toString().padStart(2, '0')}:00</p>
+                </div>
+            `;
+            
+            // Populate sources
+            const sourceData = countries.slice(0, 5).map(c => ({
+                ...c,
+                count: rand(50, 500)
+            })).sort((a, b) => b.count - a.count);
+            
+            document.getElementById('modalSources').innerHTML = sourceData.map(s => `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span>${s.flag}</span>
+                        <span class="text-sm text-gray-300">${s.name}</span>
+                    </div>
+                    <span class="font-mono text-sm" style="color: ${details.color}">${s.count}</span>
+                </div>
+            `).join('');
+            
+            // Populate targets
+            const targetData = targets.slice(0, 5).map(t => ({
+                name: t,
+                count: rand(20, 300)
+            })).sort((a, b) => b.count - a.count);
+            
+            document.getElementById('modalTargets').innerHTML = targetData.map(t => `
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-300">${t.name}</span>
+                    <span class="font-mono text-sm text-cyber-cyan">${t.count}</span>
+                </div>
+            `).join('');
+            
+            // Populate signatures
+            document.getElementById('modalSignatures').innerHTML = details.signatures.map(sig => `
+                <div class="px-2 py-1 bg-cyber-dark rounded text-xs font-mono text-gray-400 border border-cyber-border">
+                    ${sig}
+                </div>
+            `).join('');
+            
+            // Generate incidents for this type
+            const typeIncidents = Array.from({ length: 8 }, () => {
+                const inc = generateIncident();
+                inc.type = attackType;
+                return inc;
+            });
+            
+            document.getElementById('modalIncidentCount').textContent = `${typeIncidents.length} incidents`;
+            document.getElementById('modalIncidents').innerHTML = typeIncidents.map(inc => `
+                <tr class="border-b border-cyber-border/30">
+                    <td class="py-2 pr-4 font-mono text-xs text-gray-400">${inc.timestamp}</td>
+                    <td class="py-2 pr-4 text-sm">${inc.source}</td>
+                    <td class="py-2 pr-4 text-sm text-gray-400">${inc.target}</td>
+                    <td class="py-2 pr-4">
+                        <span class="px-2 py-0.5 text-xs rounded ${severityColors[inc.severity].bg} ${severityColors[inc.severity].text}">${inc.severity}</span>
+                    </td>
+                    <td class="py-2 text-sm ${inc.status === 'Mitigated' ? 'text-cyber-green' : 'text-cyber-yellow'}">${inc.status}</td>
+                </tr>
+            `).join('');
+            
+            // Set recommendation
+            document.getElementById('modalRecommendationText').textContent = details.recommendation;
+            
+            // Initialize/update modal charts
+            initModalCharts(attackType, details.color);
+            
+            // Show modal
+            overlay.classList.add('active');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const modal = document.getElementById('detailModal');
+            
+            overlay.classList.remove('active');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            
+            // Destroy modal charts to prevent memory leaks
+            if (modalCharts.trend) {
+                modalCharts.trend.destroy();
+                modalCharts.trend = null;
+            }
+            if (modalCharts.severity) {
+                modalCharts.severity.destroy();
+                modalCharts.severity = null;
+            }
+        }
+        
+        function initModalCharts(attackType, color) {
+            // Destroy existing charts if they exist
+            if (modalCharts.trend) modalCharts.trend.destroy();
+            if (modalCharts.severity) modalCharts.severity.destroy();
+            
+            // Trend Chart - 24 hour data
+            const trendCtx = document.getElementById('modalTrendChart').getContext('2d');
+            const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            const trendData = hours.map(() => rand(5, 80));
+            
+            modalCharts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Incidents',
+                        data: trendData,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { size: 9 }, maxTicksLimit: 8 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+            
+            // Severity Chart - Horizontal bar
+            const severityCtx = document.getElementById('modalSeverityChart').getContext('2d');
+            const severityData = {
+                critical: rand(50, 200),
+                high: rand(100, 400),
+                medium: rand(200, 600),
+                low: rand(300, 800)
+            };
+            
+            modalCharts.severity = new Chart(severityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        data: Object.values(severityData),
+                        backgroundColor: ['#ff3366', '#ff9500', '#ffea00', '#00f0ff'],
+                        borderRadius: 4,
+                        barThickness: 24
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 58, 95, 0.3)' },
+                            ticks: { color: '#6b7280', font: { size: 9 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
         
         // ================================
         // INITIALIZATION
